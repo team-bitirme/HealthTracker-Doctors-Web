@@ -1,36 +1,157 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HealthTracker Doctors Web
 
-## Getting Started
+HealthTracker Doctors Web, doktorların hastalarını takip edebileceği modern bir web uygulamasıdır. React Native mobil uygulamasının web versiyonu olarak geliştirilmiştir.
 
-First, run the development server:
+## 🚀 Özellikler
 
+### 👨‍⚕️ Doktor Paneli
+- **Hasta Yönetimi**: Hasta listesi görüntüleme ve detay bilgileri
+- **Egzersiz Planları**: Hastalara özel egzersiz rutinleri oluşturma ve takibi
+- **Şikayet Takibi**: Hasta şikayetlerini görüntüleme ve yönetme
+- **Sağlık Ölçümleri**: Hasta sağlık verilerini analiz etme
+- **Real-time Mesajlaşma**: Hastalarla anlık iletişim
+
+### 📊 Dashboard Özellikleri
+- Hasta istatistikleri
+- Okunmamış mesaj bildirimleri
+- Aktif şikayet sayısı
+- Toplam hasta sayısı
+
+### 💬 Mesajlaşma Sistemi
+- Gerçek zamanlı chat
+- Mesaj geçmişi
+- Okunmamış mesaj göstergeleri
+
+### 🏃‍♂️ Egzersiz Yönetimi
+- Mevcut egzersizler arasından seçim
+- Egzersiz planı oluşturma
+- Egzersiz tamamlama takibi
+- Zorluk seviyesi belirleme
+
+## 🛠️ Teknoloji Stack
+
+- **Frontend Framework**: Next.js 15 (App Router)
+- **UI Framework**: React 18
+- **Styling**: Tailwind CSS v4
+- **State Management**: Zustand
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Icons**: Heroicons
+- **Date Handling**: date-fns
+- **Language**: TypeScript
+
+## 📋 Gereksinimler
+
+- Node.js 18.x veya üzeri
+- npm veya yarn
+- Supabase hesabı
+
+## 🚀 Kurulum
+
+1. **Repository'yi klonlayın:**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/team-bitirme/HealthTracker-Doctors-Web.git
+cd HealthTracker-Doctors-Web
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Bağımlılıkları yükleyin:**
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Environment değişkenlerini ayarlayın:**
+`.env.local` dosyası oluşturun:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. **Geliştirme sunucusunu başlatın:**
+```bash
+npm run dev
+```
 
-## Learn More
+5. **Tarayıcıda açın:**
+[http://localhost:3000](http://localhost:3000)
 
-To learn more about Next.js, take a look at the following resources:
+## 📁 Proje Yapısı
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Home page
+├── components/            # React components
+│   ├── auth/             # Authentication components
+│   ├── dashboard/        # Dashboard components
+│   ├── providers/        # Context providers
+│   └── ui/               # Reusable UI components
+├── lib/                  # Utilities and configurations
+│   ├── supabase.ts      # Supabase client
+│   └── types/           # TypeScript definitions
+├── services/             # API services
+└── store/               # Zustand stores
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🗄️ Veritabanı Şeması
 
-## Deploy on Vercel
+### Ana Tablolar
+- **patients**: Hasta bilgileri
+- **doctors**: Doktor bilgileri
+- **doctor_patients**: Doktor-hasta ilişkileri
+- **messages**: Mesajlaşma sistemi
+- **complaints**: Hasta şikayetleri
+- **health_measurements**: Sağlık ölçümleri
+- **exercise_plans**: Egzersiz planları
+- **exercises**: Mevcut egzersizler
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🎨 UI/UX Özellikleri
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Responsive Design**: Tüm cihazlarda uyumlu
+- **Modern Interface**: Temiz ve kullanıcı dostu tasarım
+- **Real-time Updates**: Anlık veri güncellemeleri
+- **Loading States**: Kullanıcı deneyimi için yükleme göstergeleri
+- **Error Handling**: Kapsamlı hata yönetimi
+
+## 🚀 Build ve Deploy
+
+### Production Build
+```bash
+npm run build
+npm start
+```
+
+### Vercel Deploy
+```bash
+npm install -g vercel
+vercel
+```
+
+## 📱 Mobil Uygulama
+
+Bu web uygulaması, React Native ile geliştirilmiş [HealthTracker Doctors Mobile](https://github.com/team-bitirme/HealthTracker-Doctors-main) uygulamasının web versiyonudur.
+
+## 🤝 Katkıda Bulunma
+
+1. Fork edin
+2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
+3. Commit edin (`git commit -m 'Add amazing feature'`)
+4. Push edin (`git push origin feature/amazing-feature`)
+5. Pull Request açın
+
+## 📄 Lisans
+
+Bu proje MIT lisansı altında lisanslanmıştır.
+
+## 👥 Team
+
+**Team Bitirme** - Sağlık teknolojileri alanında yenilikçi çözümler geliştiren bir ekip.
+
+## 📞 İletişim
+
+Proje hakkında sorularınız için GitHub Issues kullanabilirsiniz.
+
+---
+
+**Not**: Bu uygulama eğitim amaçlı geliştirilmiştir ve gerçek tıbbi kullanım için uygun değildir.
