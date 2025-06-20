@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useProfileStore } from '@/store/profileStore';
 import { PatientListPanel } from './PatientListPanel';
 import { DashboardHeader } from './DashboardHeader';
@@ -9,6 +9,8 @@ import { ExerciseRoutinePanel } from './ExerciseRoutinePanel';
 import { ChatPanel } from './ChatPanel';
 import { GeneralDashboard } from './GeneralDashboard';
 import { AddPatientPanel } from './AddPatientPanel';
+import { ResizableHandle } from '@/components/ui/ResizableHandle';
+import { useResizable } from '@/hooks/useResizable';
 import { HomeIcon } from '@heroicons/react/24/outline';
 
 export interface Patient {
@@ -31,6 +33,26 @@ export function Dashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>('general');
   const [refreshPatients, setRefreshPatients] = useState(0); // Counter to trigger refresh
   const { profile } = useProfileStore();
+
+  // Panel width constraints
+  const MIN_PANEL_WIDTH = 20;
+  const MAX_PANEL_WIDTH = 60;
+
+  // Resizable panels - Define them first without callbacks
+  const leftPanel = useResizable({
+    initialWidth: 40, // 40% (equivalent to w-2/5)
+    minWidth: MIN_PANEL_WIDTH,
+    maxWidth: MAX_PANEL_WIDTH
+  });
+
+  const middlePanel = useResizable({
+    initialWidth: 33, // 33% (equivalent to w-1/3)
+    minWidth: MIN_PANEL_WIDTH,
+    maxWidth: MAX_PANEL_WIDTH
+  });
+
+  // Right panel width is calculated as the remaining space
+  const rightPanelWidth = Math.max(100 - leftPanel.width - middlePanel.width, MIN_PANEL_WIDTH);
 
   const handlePatientSelect = (patient: Patient | null) => {
     setSelectedPatient(patient);
@@ -110,20 +132,41 @@ export function Dashboard() {
               doctorId={profile?.id || ''}
             />
           ) : (
-            // Hasta Seçildiğinde 3 Bölge - Optimize edilmiş genişlik dağılımı
+            // Hasta Seçildiğinde 3 Resizable Bölge
             <div className="h-full flex">
-              {/* Sol Bölge - Hasta Bilgileri (daha geniş) */}
-              <div className="w-2/5 border-r border-gray-200">
+              {/* Sol Bölge - Hasta Bilgileri */}
+              <div
+                className="overflow-hidden flex-shrink-0"
+                style={{ width: `${leftPanel.width}%` }}
+              >
                 <PatientInfoPanel patient={selectedPatient!} />
               </div>
 
+              {/* İlk Resizable Handle */}
+              <ResizableHandle
+                onMouseDown={leftPanel.handleMouseDown}
+                isDragging={leftPanel.isDragging}
+              />
+
               {/* Orta Bölge - Egzersiz Rutini */}
-              <div className="w-1/3 border-r border-gray-200">
+              <div
+                className="overflow-hidden flex-shrink-0"
+                style={{ width: `${middlePanel.width}%` }}
+              >
                 <ExerciseRoutinePanel patient={selectedPatient!} />
               </div>
 
-              {/* Sağ Bölge - Sohbet (daha dar) */}
-              <div className="w-1/4">
+              {/* İkinci Resizable Handle */}
+              <ResizableHandle
+                onMouseDown={middlePanel.handleMouseDown}
+                isDragging={middlePanel.isDragging}
+              />
+
+              {/* Sağ Bölge - Sohbet */}
+              <div
+                className="overflow-hidden flex-1"
+                style={{ minWidth: `${MIN_PANEL_WIDTH}%` }}
+              >
                 <ChatPanel patient={selectedPatient!} />
               </div>
             </div>
