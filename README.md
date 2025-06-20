@@ -22,6 +22,12 @@ HealthTracker Doctors Web, doktorların hastalarını takip edebileceği modern 
 - Mesaj geçmişi
 - Okunmamış mesaj göstergeleri
 
+### 🤖 AI Asistan
+- Google Gemini AI entegrasyonu
+- Tıbbi sorulara rehberlik
+- 7/24 kullanılabilir akıllı asistan
+- Doktor kararlarına destek
+
 ### 🏃‍♂️ Egzersiz Yönetimi
 - Mevcut egzersizler arasından seçim
 - Egzersiz planı oluşturma
@@ -36,6 +42,7 @@ HealthTracker Doctors Web, doktorların hastalarını takip edebileceği modern 
 - **State Management**: Zustand
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth
+- **AI Integration**: Google Gemini AI
 - **Icons**: Heroicons
 - **Date Handling**: date-fns
 - **Language**: TypeScript
@@ -64,6 +71,15 @@ npm install
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+**Google Gemini API Key ayarlama:**
+1. [Google AI Studio](https://aistudio.google.com/app/apikey) sayfasına gidin
+2. Google hesabınızla giriş yapın
+3. "Create API Key" butonuna tıklayın
+4. `src/store/llmStore.ts` dosyasında `GEMINI_API_KEY` değişkenine API key'inizi yazın:
+```typescript
+const GEMINI_API_KEY = 'your_actual_api_key_here';
 ```
 
 4. **Geliştirme sunucusunu başlatın:**

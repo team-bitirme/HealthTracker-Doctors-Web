@@ -8,10 +8,13 @@ import {
   HeartIcon,
   ClipboardDocumentListIcon,
   ChartBarIcon,
-  CalendarIcon
+  CalendarIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { Patient } from './Dashboard';
 import { supabase } from '@/lib/supabase';
+import { useLLMStore } from '@/store/llmStore';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface PatientInfoPanelProps {
   patient: Patient;
@@ -50,6 +53,8 @@ export function PatientInfoPanel({ patient }: PatientInfoPanelProps) {
   const [loading, setLoading] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [showComplaintModal, setShowComplaintModal] = useState(false);
+
+  const { generatePatientReport, isGeneratingReport } = useLLMStore();
 
   useEffect(() => {
     fetchHealthMeasurements();
@@ -147,11 +152,39 @@ export function PatientInfoPanel({ patient }: PatientInfoPanelProps) {
     }
   };
 
+    const handleGenerateReport = async () => {
+    try {
+      await generatePatientReport(patient);
+    } catch (error) {
+      console.error('Rapor oluşturulurken hata:', error);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Başlık */}
       <div className="p-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">Hasta Bilgileri</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Hasta Bilgileri</h3>
+          <button
+            onClick={handleGenerateReport}
+            disabled={isGeneratingReport}
+            className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+            title="AI ile hasta raporu oluştur"
+          >
+            {isGeneratingReport ? (
+              <>
+                <LoadingSpinner size="sm" />
+                <span>Rapor Hazırlanıyor...</span>
+              </>
+            ) : (
+              <>
+                <DocumentTextIcon className="w-4 h-4" />
+                <span>Rapor Oluştur</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Tab navigation */}

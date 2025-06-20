@@ -32,7 +32,9 @@ export function ChatPanel({ patient }: ChatPanelProps) {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [patientUserId, setPatientUserId] = useState<string | null>(null);
+  const [lastMessageTime, setLastMessageTime] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -42,43 +44,86 @@ export function ChatPanel({ patient }: ChatPanelProps) {
   useEffect(() => {
     if (patientUserId) {
       fetchMessages();
-
-      // Real-time subscription
-      const subscription = supabase
-        .channel(`chat-${patient.id}`)
-        .on('postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `sender_user_id=eq.${patientUserId},receiver_user_id=eq.${user?.id}`
-          },
-          (payload) => {
-            setMessages(prev => [...prev, payload.new as Message]);
-          }
-        )
-        .on('postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `sender_user_id=eq.${user?.id},receiver_user_id=eq.${patientUserId}`
-          },
-          (payload) => {
-            setMessages(prev => [...prev, payload.new as Message]);
-          }
-        )
-        .subscribe();
+      startPolling();
 
       return () => {
-        subscription.unsubscribe();
+        stopPolling();
       };
     }
   }, [patientUserId, user?.id, patient.id]);
 
+  // Polling sistemi başlatma
+  const startPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    pollingIntervalRef.current = setInterval(() => {
+      checkForNewMessages();
+    }, 10000); // 10 saniyede bir kontrol
+  };
+
+  // Polling sistemi durdurma
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
+
+    // Yeni mesajları kontrol etme
+  const checkForNewMessages = async () => {
+    if (!patientUserId || !user) return;
+
+    try {
+      let query = supabase
+        .from('messages')
+        .select('*')
+        .or(`and(sender_user_id.eq.${user.id},receiver_user_id.eq.${patientUserId}),and(sender_user_id.eq.${patientUserId},receiver_user_id.eq.${user.id})`)
+        .order('created_at', { ascending: true });
+
+      // Eğer son mesaj zamanı varsa, sadece ondan sonraki mesajları al
+      if (lastMessageTime) {
+        query = query.gt('created_at', lastMessageTime);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const newMessages = data || [];
+
+      // Eğer yeni mesajlar varsa mevcut mesajlara ekle
+      if (newMessages.length > 0) {
+        setMessages(prev => {
+          // Duplicate kontrolü yap
+          const existingIds = new Set(prev.map(msg => msg.id));
+          const uniqueNewMessages = newMessages.filter(msg => !existingIds.has(msg.id));
+
+          if (uniqueNewMessages.length > 0) {
+            // Son mesajın zamanını güncelle
+            setLastMessageTime(uniqueNewMessages[uniqueNewMessages.length - 1].created_at);
+            return [...prev, ...uniqueNewMessages];
+          }
+
+          return prev;
+        });
+      }
+    } catch (error) {
+      console.error('Yeni mesajlar kontrol edilirken hata:', error);
+    }
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Component unmount olduğunda polling'i durdur
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -111,7 +156,14 @@ export function ChatPanel({ patient }: ChatPanelProps) {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+
+      const messages = data || [];
+      setMessages(messages);
+
+      // Son mesajın zamanını ayarla
+      if (messages.length > 0) {
+        setLastMessageTime(messages[messages.length - 1].created_at);
+      }
     } catch (error) {
       console.error('Mesajlar yüklenirken hata:', error);
     } finally {
@@ -136,6 +188,12 @@ export function ChatPanel({ patient }: ChatPanelProps) {
 
       if (error) throw error;
       setNewMessage('');
+
+      // Mesaj gönderildikten sonra hemen yeni mesajları kontrol et
+      setTimeout(() => {
+        checkForNewMessages();
+      }, 500); // 500ms sonra kontrol et (mesajın veritabanına yazılması için kısa bir bekleme)
+
     } catch (error) {
       console.error('Mesaj gönderilirken hata:', error);
     } finally {

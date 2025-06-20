@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useProfileStore } from '@/store/profileStore';
+import { useLLMStore } from '@/store/llmStore';
 import { PatientListPanel } from './PatientListPanel';
 import { DashboardHeader } from './DashboardHeader';
 import { PatientInfoPanel } from './PatientInfoPanel';
@@ -9,6 +10,7 @@ import { ExerciseRoutinePanel } from './ExerciseRoutinePanel';
 import { ChatPanel } from './ChatPanel';
 import { GeneralDashboard } from './GeneralDashboard';
 import { AddPatientPanel } from './AddPatientPanel';
+import { LLMChatSidebar } from './LLMChatSidebar';
 import { ResizableHandle } from '@/components/ui/ResizableHandle';
 import { useResizable } from '@/hooks/useResizable';
 import { HomeIcon } from '@heroicons/react/24/outline';
@@ -33,6 +35,12 @@ export function Dashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>('general');
   const [refreshPatients, setRefreshPatients] = useState(0); // Counter to trigger refresh
   const { profile } = useProfileStore();
+  const { initialize } = useLLMStore();
+
+  // Initialize LLM store when component mounts
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   // Panel width constraints
   const MIN_PANEL_WIDTH = 20;
@@ -173,6 +181,9 @@ export function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* LLM Chat Sidebar */}
+      <LLMChatSidebar />
     </div>
   );
 }
