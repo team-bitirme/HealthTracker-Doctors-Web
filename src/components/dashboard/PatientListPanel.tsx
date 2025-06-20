@@ -2,32 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import { MagnifyingGlassIcon, UserIcon } from '@heroicons/react/24/outline';
-import { Patient } from './Dashboard';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
+import { Patient } from '@/lib/types/database';
+import { useProfileStore } from '@/store/profileStore';
 
 interface PatientListPanelProps {
   onPatientSelect: (patient: Patient | null) => void;
   selectedPatient: Patient | null;
+  onAddPatient: () => void;
+  refreshTrigger?: number;
 }
 
-export function PatientListPanel({ onPatientSelect, selectedPatient }: PatientListPanelProps) {
+export function PatientListPanel({ onPatientSelect, selectedPatient, onAddPatient, refreshTrigger }: PatientListPanelProps) {
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const { user } = useAuthStore();
-
-  useEffect(() => {
-    if (user) {
-      fetchPatients();
-    }
-  }, [user]);
+  const { profile } = useProfileStore();
 
   const fetchPatients = async () => {
     if (!user) return;
 
+    setLoading(true);
     try {
-      // First get the doctor's ID
+      // First get the doctor ID
       const { data: doctorData, error: doctorError } = await supabase
         .from('doctors')
         .select('id')
@@ -88,6 +87,17 @@ export function PatientListPanel({ onPatientSelect, selectedPatient }: PatientLi
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPatients();
+  }, [user]);
+
+  // Refresh patients when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      fetchPatients();
+    }
+  }, [refreshTrigger]);
 
   const filteredPatients = patients.filter(patient =>
     patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -221,7 +231,10 @@ export function PatientListPanel({ onPatientSelect, selectedPatient }: PatientLi
 
       {/* Alt Kısım - Yeni Hasta Ekle */}
       <div className="p-4 bg-white border-t border-gray-200">
-        <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+        <button
+          onClick={onAddPatient}
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+        >
           Yeni Hasta Ekle
         </button>
       </div>

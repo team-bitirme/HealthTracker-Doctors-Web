@@ -22,27 +22,31 @@ interface Patient {
   created_at: string | null;
 }
 
-export function PatientsPage() {
+interface PatientsPageProps {
+  onAddPatient?: () => void;
+}
+
+export function PatientsPage({ onAddPatient }: PatientsPageProps) {
   const { profile } = useProfileStore();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const loadPatients = async () => {
+    if (!profile?.id) return;
+
+    setIsLoading(true);
+    try {
+      const patientsData = await doctorService.getDoctorPatients(profile.id);
+      setPatients(patientsData);
+    } catch (error) {
+      console.error('Hastalar yüklenirken hata:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadPatients = async () => {
-      if (!profile?.id) return;
-
-      setIsLoading(true);
-      try {
-        const patientsData = await doctorService.getDoctorPatients(profile.id);
-        setPatients(patientsData);
-      } catch (error) {
-        console.error('Hastalar yüklenirken hata:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadPatients();
   }, [profile?.id]);
 
@@ -83,15 +87,18 @@ export function PatientsPage() {
             Toplam {patients.length} hasta
           </p>
         </div>
-        <div className="mt-4 sm:mt-0">
-          <button
-            type="button"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-            Yeni Hasta Ekle
-          </button>
-        </div>
+        {onAddPatient && (
+          <div className="mt-4 sm:mt-0">
+            <button
+              type="button"
+              onClick={onAddPatient}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+              Yeni Hasta Ekle
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Arama */}
@@ -120,9 +127,21 @@ export function PatientsPage() {
           <p className="mt-1 text-sm text-gray-500">
             {searchTerm
               ? 'Arama kriterlerinizi değiştirip tekrar deneyin.'
-              : 'Size atanan hastalar burada görüntülenecek.'
+              : 'Yeni bir hasta ekleyerek başlayın.'
             }
           </p>
+          {!searchTerm && onAddPatient && (
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={onAddPatient}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+                İlk Hastanızı Ekleyin
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">

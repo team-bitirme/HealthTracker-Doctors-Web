@@ -23,6 +23,16 @@ export interface DoctorWithPatients extends DoctorProfile {
   }[];
 }
 
+export interface PatientFormData {
+  email: string;
+  password: string;
+  name: string;
+  surname: string;
+  birth_date: string;
+  gender: 'male' | 'female';
+  patient_note: string;
+}
+
 class DoctorService {
   /**
    * Doktor profilini user_id ile getir
@@ -321,6 +331,156 @@ class DoctorService {
     };
 
     return genderMap[genderName.toLowerCase()] || genderName;
+  }
+
+  /**
+   * Yeni hasta ekle
+   */
+  async addPatient(doctorId: string, formData: PatientFormData): Promise<{ success: boolean; error?: string }> {
+    console.log('👥 [AddPatient] Hasta ekleme işlemi başlatılıyor...', {
+      email: formData.email,
+      name: formData.name,
+      surname: formData.surname,
+      doctorId
+    });
+
+    try {
+      // Validation
+      if (!formData.email.trim()) throw new Error('E-posta adresi gereklidir');
+      if (!formData.password.trim()) throw new Error('Şifre gereklidir');
+      if (formData.password.length < 6) throw new Error('Şifre en az 6 karakter olmalıdır');
+      if (!formData.name.trim()) throw new Error('Ad gereklidir');
+      if (!formData.surname.trim()) throw new Error('Soyad gereklidir');
+      if (!formData.gender) throw new Error('Cinsiyet seçimi gereklidir');
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) throw new Error('Geçerli bir e-posta adresi giriniz');
+
+      // Test domain'lerini engelle
+      const invalidDomains = ['example.com', 'test.com', 'invalid.com'];
+      const emailDomain = formData.email.split('@')[1]?.toLowerCase();
+      if (invalidDomains.includes(emailDomain)) {
+        throw new Error('Lütfen gerçek bir e-posta adresi kullanın (gmail.com, outlook.com vb.)');
+      }
+
+      // 1. Önce hasta için auth kullanıcısı oluştur
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (authError) {
+        console.error('💥 [AddPatient] Auth kullanıcı oluşturma hatası:', authError);
+
+        // E-posta validasyon hatası için özel mesaj
+        if (authError.message.includes('Email address') && authError.message.includes('invalid')) {
+          throw new Error('Geçersiz e-posta adresi. Lütfen gerçek bir e-posta adresi kullanın (gmail.com, outlook.com vb.)');
+        }
+
+        throw new Error(`Kullanıcı oluşturulamadı: ${authError.message}`);
+      }
+
+      if (!authData.user?.id) {
+        throw new Error('Kullanıcı ID\'si alınamadı');
+      }
+
+      const patientUserId = authData.user.id;
+      console.log('✅ [AddPatient] Auth kullanıcısı oluşturuldu:', { patientUserId });
+
+      // 2. Users tablosuna ekle
+      const { error: userError } = await supabase
+        .from('users')
+        .insert({
+          id: patientUserId,
+          email: formData.email,
+          role_id: 3, // Patient role ID
+          created_at: new Date().toISOString(),
+        });
+
+      if (userError) {
+        console.error('💥 [AddPatient] Users tablosuna ekleme hatası:', userError);
+        throw new Error(`Kullanıcı kaydı oluşturulamadı: ${userError.message}`);
+      }
+
+      console.log('✅ [AddPatient] Users tablosuna kaydedildi');
+
+      // 3. Cinsiyet ID'sini belirle (erkek: 1, kadın: 2)
+      const genderId = formData.gender === 'male' ? 1 : 2;
+      console.log('✅ [AddPatient] Cinsiyet ID belirlendi:', { gender: formData.gender, genderId });
+
+      // 4. Patients tablosuna ekle
+      const patientInsertData = {
+        user_id: patientUserId,
+        name: formData.name.trim(),
+        surname: formData.surname.trim(),
+        birth_date: formData.birth_date,
+        gender_id: genderId,
+        patient_note: formData.patient_note.trim() || null,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+      };
+
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .insert(patientInsertData as any)
+        .select('id')
+        .single();
+
+      if (patientError) {
+        console.error('💥 [AddPatient] Patients tablosuna ekleme hatası:', patientError);
+        throw new Error(`Hasta kaydı oluşturulamadı: ${patientError.message}`);
+      }
+
+      if (!patientData?.id) {
+        throw new Error('Hasta ID\'si alınamadı');
+      }
+
+      const patientId = patientData.id;
+      console.log('✅ [AddPatient] Patients tablosuna kaydedildi:', { patientId });
+
+      // 5. Doctor_patients tablosuna ilişki ekle
+      const { error: doctorPatientError } = await supabase
+        .from('doctor_patients')
+        .insert({
+          doctor_id: doctorId,
+          patient_id: patientId,
+          is_deleted: false,
+          created_at: new Date().toISOString(),
+        });
+
+      if (doctorPatientError) {
+        console.error('💥 [AddPatient] Doctor_patients tablosuna ekleme hatası:', doctorPatientError);
+        throw new Error(`Doktor-hasta ilişkisi oluşturulamadı: ${doctorPatientError.message}`);
+      }
+
+      console.log('✅ [AddPatient] Doctor_patients tablosuna kaydedildi');
+
+      // 6. Doktorun hasta sayısını güncelle
+      const { count } = await supabase
+        .from('doctor_patients')
+        .select('*', { count: 'exact', head: true })
+        .eq('doctor_id', doctorId)
+        .eq('is_deleted', false);
+
+      await supabase
+        .from('doctors')
+        .update({
+          patient_count: count || 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', doctorId);
+
+      console.log('✅ [AddPatient] Doktor hasta sayısı güncellendi:', { newCount: count || 0 });
+
+      return { success: true };
+
+    } catch (error) {
+      console.error('💥 [AddPatient] Hasta ekleme beklenmeyen hatası:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Hasta eklenirken bir hata oluştu'
+      };
+    }
   }
 }
 
